@@ -1,29 +1,30 @@
 <!DOCTYPE htlm>
 <html lang="en">
     <head>
-        <title>SiteName</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="shortcut icon" href="./Favicon.png" type="image/x-icon" />
 
         <link async rel="stylesheet" href="./site.css">
-        <script src="./state.js?v=1"></script>
-        <script src="./app.js?v=1"></script>
-        
-        <!-- OPTIONAL If you're connecting to an api, use this basic tool for GET, PUT, POST, and DELETE methods. -->
-        <!-- <script src="./api.js?v=1"></script> -->
+        <!-- <script src="./scripts/api.js"></script> -->
+        <script src="./scripts/app.js"></script>
+        <script src="./scripts/models.js"></script>
+        <script src="./scripts/state.js"></script>
         
         <!--Funtility auth-->
+        <link async rel="stylesheet" href="https://funtility.github.io/funtility-js-plugin/funtility-ui.css">
+        <script src="https://funtility.github.io/funtility-js-plugin/funtility-ui.js"></script>
         <script src="https://funtility.github.io/funtility-js-plugin/funtility-api.js"></script>
     </head>
-    <body></body>
+    <body>
+    </body>
     <script>
-        let state, api, app
+        let state, api, app, page
+        const appName = 'Ignyos'
         window.onload = async () => {
-            state = new State("SiteName:Portal")
-            api = window.location.host ? new FuntilityAPI("SiteName") : new FuntilityAPI('SiteName', 'http://localhost:5194/')
-            app = new App('Site')
-            await app.load()
+            state = new State("Ignyos:Portal")
+            api = window.location.host ? new FuntilityAPI(appName) : new FuntilityAPI(appName, 'http://localhost:5194/')
+            app = new App(appName)
         }
     </script>
 </html>

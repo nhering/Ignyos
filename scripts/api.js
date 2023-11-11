@@ -24,15 +24,15 @@ class APIResponse {
  * https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
  */
 class API {
-    constructor(apiBaseUrl)
+    constructor(appName, apiBaseUrl = 'http://api.funtility.com/')
     {
-        this.apiBaseUrl = apiBaseUrl
+        this.apiBaseUrl = `${apiBaseUrl}${appName}/`
     }
 
     //#region General Request Methods
 
     /**
-     * A wrapper around the fetch api using the GET verb.
+     * A wrapper around the fetch api using the GET method.
      * 
      * https://developer.mozilla.org/en-US/docs/Web/API/Request/method
      * @param {string} endpoint
