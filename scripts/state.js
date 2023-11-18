@@ -1,18 +1,18 @@
 const pages = {
-   FOCUS: "focus",
-   HOME: "home",
-   QUIZ: "quiz",
-   SUBJECT: "subject",
-   SETTINGS: "settings",
+   HOME: "Home",
+   MATERIAL: "Material",
+   QUIZ: "Quiz",
+   SETTINGS: "Settings",
+   STATS: "Stats",
 
-   valid(page)
+   isValid(page)
    {
       if (
-         page === this.FOCUS ||
          page === this.HOME ||
+         page === this.MATERIAL ||
          page === this.QUIZ ||
-         page === this.SUBJECT ||
-         page === this.SETTINGS
+         page === this.SETTINGS ||
+         page === this.STATS
       ) {
          return true
       } else {
@@ -24,39 +24,21 @@ const pages = {
 class State {
    constructor(siteName) {
       this.name = siteName
-
-      this._currentPage
-      this._quiz
-      // this._openQuestion
-      // this._focusSubjects
-      this._accountSubjects
-      // this._topicList
-
       this.getLocal()
    }
 
-   //#region currentPage
+   //#region Current Page
 
-   get currentPage()
-   {
-      try {
-         if (!pages.valid(this._currentPage)) {
-            this._currentPage = pages.HOME
-         }
-      } catch (error) {
-         console.error(error)
+   _currentPage
+   get currentPage() {
+      if (!pages.isValid(this._currentPage)) {
          this._currentPage = pages.HOME
       }
       return this._currentPage
    }
-
-   set currentPage(data)
-   {
-      try {
-         this._currentPage = pages.valid(data) ? data : pages.HOME
-      } catch (error) {
-         console.error(error)
-         this._currentPage = pages.HOME
+   set currentPage(data) {
+      if (pages.isValid(data)) {
+         this._currentPage = data
       }
       this.setLocal()
    }
@@ -65,167 +47,129 @@ class State {
 
    //#region Quiz
 
+   _quiz = new Quiz()
    get quiz()
    {
-      try {
-         if (!this._quiz) this._quiz = new Quiz()
-      } catch (error) {
-         console.error(error)
-         this._quiz = new Quiz()
-      }
+      if (!this._quiz) this._quiz = new Quiz()
       return this._quiz
    }
-
    set quiz(data)
    {
-      try {
-         this._quiz = data.quizId ? data : new Quiz()
-      } catch (error) {
-         console.error(error)
-         this._quiz = new Quiz()
-      }
+      this._quiz = data.quizId ? data : new Quiz()
       this.setLocal()
    }
 
    //#endregion
 
-   //#region openQuestion
+   //#region AccountSubjects
 
-   // get openQuestion()
-   // {
-   //    try {
-   //       if (!this._openQuestion) this._openQuestion = new OpenQuestion()
-   //    } catch (error) {
-   //       console.error(error)
-   //       this._openQuestion = new OpenQuestion()
-   //    }
-   //    return this._openQuestion
-   // }
+   _selectedSubjectId = 0
+   get selectedSubjectId() {
+      return this._selectedSubjectId
+   }
+   set selectedSubjectId(id) {
+      if (this._selectedSubjectId == id) return
+      this._selectedSubjectId = id
+      this.selectedTopicId = 0
+   }
 
-   // set openQuestion(data)
-   // {
-   //    try {
-   //       this._openQuestion = data.id ? data : new OpenQuestion()
-   //    } catch (error) {
-   //       console.error(error)
-   //       this._openQuestion = new OpenQuestion()
-   //    }
-   //    this.setLocal()
-   // }
-
-   //#endregion
-
-   //#region focusSubjects
-
-   // get focusSubjects()
-   // {
-   //    try {
-   //       if (!this._focusSubjects.length) this._focusSubjects = []
-   //    } catch (error) {
-   //       console.error(error)
-   //       this._focusSubjects = []
-   //    }
-   //    return this._focusSubjects
-   // }
-
-   // set focusSubjects(data)
-   // {
-   //    try {
-   //       this._focusSubjects = data.length ? data : []
-   //    } catch (error) {
-   //       console.error(error)
-   //       this._focusSubjects = []
-   //    }
-   //    this.setLocal()
-   // }
-
-   //#endregion
-
-   //#region accountSubjects
-
+   _accountSubjects = []
    get accountSubjects()
    {
-      try {
-         if (!this._accountSubjects) this._accountSubjects = []
-      } catch (error) {
-         console.error(error)
-         this._accountSubjects = []
-      }
+      if (!this._accountSubjects) this._accountSubjects = []
       return this._accountSubjects
    }
-
    set accountSubjects(data)
    {
-      try {
-         this._accountSubjects = data.length ? data : []
-         this._accountSubjects.forEach(actSub => {
-            actSub.editing = false
-            actSub.expanded = false
-            actSub.focusTopicIds = JSON.parse(actSub.focusTopicIds)
-         });
-      } catch (error) {
-         console.error(error)
-         this._accountSubjects = []
-      }
+      this._accountSubjects = data.length ? data : []
+      this._accountSubjects.forEach(actSub => {
+         actSub.focusTopicIds = JSON.parse(actSub.focusTopicIds)
+      });
+      this.accountSubjects.sort((a,b) => {
+         return a.subject.title.localeCompare(b.subject.title)
+      })
+      this.setLocal()
+   }
+
+   addNewAccountSubject(data) {
+      this.selectedSubjectId = data.subject.id
+      this.accountSubjects.push(data)
+      this.accountSubjects.sort((a,b) => {
+         return a.subject.title.localeCompare(b.subject.title)
+      })
+      this.setLocal()
+   }
+
+   updateAccountSubject(data) {
+      this.selectedSubjectId = data.subject.id
+      let i = this.accountSubjects.findIndex((e) => {
+         e.subject.id == data.subject.id
+      })
+      this.accountSubjects[i] = data
+      this.accountSubjects.sort((a,b) => {
+         return a.subject.title.localeCompare(b.subject.title)
+      })
+      this.setLocal()
+   }
+
+   deleteAccountSubject(data) {
+      this.selectedSubjectId = 0
+      let i = this.accountSubjects.findIndex((e) => {
+         e.subject.id == data.subject.id
+      })
+      this.accountSubjects.splice(i,1)
       this.setLocal()
    }
 
    //#endregion
 
-   //#region
+   //#region Topics
 
-   get actSubEditing()
-   {
-
+   _selectedTopicId = 0
+   get selectedTopicId() {
+      return this._selectedTopicId
+   }
+   set selectedTopicId(id) {
+      if (this._selectedTopicId == id) return
+      this._selectedTopicId = id
    }
 
-   set actSubEditing(data)
+   _topics = []
+   get topics()
    {
+      if (!this._topics) this._topics = []
+      return this._topics
+   }
 
+   set topics(data)
+   {
+      this._topi_topicsList = data.length ? data : []
    }
 
    //#endregion
 
-   //#region topicList
-
-   // get topicList()
-   // {
-   //    try {
-   //       if (!this._topicList) this._topicList = []
-   //    } catch (error) {
-   //       console.error(error)
-   //       this._topicList = []
-   //    }
-   //    return this._topicList
-   // }
-
-   // set topicList(data)
-   // {
-   //    try {
-   //       this._topicList = data.length ? data : []
-   //    } catch (error) {
-   //       console.error(error)
-   //       this._topicList = []
-   //    }
-   // }
-
-   //#endregion
-
-   //#region localStorage
+   //#region Browser Local Storage
 
    getLocal() {
       let local = localStorage.getItem(this.name)
       if (local == null)
       {
+         this._currentPage = pages.HOME
          this._quiz = new Quiz()
+         this._selectedSubjectId = 0
          this._accountSubjects = []
+         this._selectedTopicId = 0
+         this._topics = []
       }
       else
       {
          local = JSON.parse(local)
-         this._quiz = new Quiz(local.quiz)
          this._currentPage = local.currentPage
+         this._quiz = new Quiz(local.quiz)
+         this._selectedSubjectId = local.selectedSubjectId
          this._accountSubjects = local.accountSubjects
+         this._selectedTopicId = local.selectedTopicId
+         this._topics = local.topics
       }
       this.setLocal()
    }
@@ -238,9 +182,12 @@ class State {
    toJson()
    {
       return `{
-         "quiz": ${JSON.stringify(this.quiz)},
          "currentPage": "${this.currentPage}",
-         "accountSubjects": ${JSON.stringify(this.accountSubjects)}
+         "quiz": ${JSON.stringify(this.quiz)},
+         "selectedSubjectId": "${this.selectedSubjectId}",
+         "accountSubjects": ${JSON.stringify(this.accountSubjects)},
+         "selectedTopicId": "${this.selectedTopicId}",
+         "topics": ${JSON.stringify(this.topics)}
       }`
    }
 

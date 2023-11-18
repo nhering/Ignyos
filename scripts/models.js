@@ -2,7 +2,11 @@
 //#region Database Models
 
 // class AccountSubject {
-
+//    constructor(data = {}) {
+//       this.id = data.hasOwnProperty('id') ? data.id : 0
+//       this.subjectId = data.hasOwnProperty('subjectId') ? data.subjectId : 0
+//       this.focusTopicIds = data.hasOwnProperty('focusTopicIds') ? data.focusTopicIds : []
+//    }
 // }
 
 // class Question {
@@ -17,21 +21,13 @@
 
 // }
 
-class AccountSubject {
-   constructor(data = {}) {
-      this.id = data.hasOwnProperty('id') ? data.id : 0
-      this.subjectId = data.hasOwnProperty('subjectId') ? data.subjectId : 0
-      this.focusTopicIds = data.hasOwnProperty('focusTopicIds') ? data.focusTopicIds : []
-   }
-}
-
-class Subject {
-   constructor(data = {}) {
-      this.id = data.hasOwnProperty('id') ? data.id : 0
-      this.title = data.hasOwnProperty('title') ? data.title : ''
-      this.deleteDateUTC = data.hasOwnProperty('deleteDateUTC') ? data.deleteDateUTC : null
-   }
-}
+// class Subject {
+//    constructor(data = {}) {
+//       this.Id = data.hasOwnProperty('id') ? data.id : 0
+//       this.Title = data.hasOwnProperty('title') ? data.title : ''
+//       this.DeleteDateUTC = data.hasOwnProperty('deleteDateUTC') ? data.deleteDateUTC : null
+//    }
+// }
 
 // class Topic {
 
@@ -141,38 +137,6 @@ class Quiz {
 //    Id = 0
 //    Title = ''
 //    QuestionCount = 0
-// }
-
-//#endregion
-
-// These models are only used by the UI
-//#region UI Models
-
-// class OpenQuestion {
-//    constructor(data = {})
-//    {
-//       if (!data) data = {}
-//       this.subjectId = data.hasOwnProperty('subjectId') ? data.subjectId : 0
-//       this.subjectName = data.hasOwnProperty('subjectName') ? data.subjectName : ""
-      
-//       this.id = data.hasOwnProperty('id') ? data.id : 0
-//       this.phrase = data.hasOwnProperty('phrase') ? data.phrase : ""
-//       this.answer = data.hasOwnProperty('answer') ? data.answer : ""
-//    }
-
-//    // setSubjectName(focusSubjects = [])
-//    // {
-//    //    try {
-//    //       focusSubjects.forEach(fs => {
-//    //          if (fs.id === this.subjectId) {
-//    //             this.subjectName = fs.title
-//    //          }
-//    //       })
-//    //    } catch (error) {
-//    //       console.error(error)
-//    //       this.subjectName = "!~!!~!!!~ERROR~!!!~!!~!"
-//    //    }
-//    // }
 // }
 
 //#endregion

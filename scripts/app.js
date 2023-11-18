@@ -2,20 +2,26 @@ class App {
    constructor(appName) {
       this.appName = appName
       document.head.appendChild(this.title)
-      document.body.appendChild(new TopBar(appName).element)
-      if (api.userIsSignedIn) {
-         if (state.quiz.id > 0) {
-            state.currentPage = pages.QUIZ
-         } else {
-            if (state.currentPage == pages.HOME) state.currentPage = pages.FOCUS
-            document.body.appendChild(new Navigation().element)
-         }
-      } else {
+      this.route()
+   }
+
+   async route() {
+      if (!api.userIsSignedIn) {
          state.currentPage = pages.HOME
       }
-      document.body.appendChild(this.content)
+
+      let siteHeader = document.getElementById('site-header')
+      if (siteHeader) siteHeader.remove()
+      document.body.appendChild(new SiteHeader(appName).element)
       this.funtilityUi = new FuntilityUI(api)
-      this.loadPage()
+
+      if (api.userIsSignedIn) {
+         let nav = document.getElementById('nav')
+         if (nav) nav.remove()
+         document.body.appendChild(navigation.element)
+      }
+      
+      await this.loadPage()
    }
 
    get title()
@@ -25,43 +31,15 @@ class App {
       return ele
    }
 
-   get content()
-   {
-      let ele = document.getElementById('content')
-      if (ele) return ele
-      ele = document.createElement('div')
-      ele.id = 'content'
-      return ele
-   }
-
-   get resources()
-   {
-      return {
-         src: `./pages/${state.currentPage}/${state.currentPage}.js`,
-         href: `./pages/${state.currentPage}/${state.currentPage}.css`,
-         version: this.pageVersion[state.currentPage]
-      }
-   }
-
-   get pageVersion()
-   {
-      const result = {}
-      result[pages.FOCUS] = 0;
-      result[pages.HOME] = 0;
-      result[pages.QUIZ] = 0;
-      result[pages.SUBJECT] = 0;
-      // result[pages.SUBJECT_LIST] = 0;
-      result[pages.SETTINGS] = 0;
-      return result
-   }
-
    async loadPage()
    {
       try {
+         this.removeScripts()
          await this.loadScripts(this.resources)
          .then(async (page) => {
-            this.content.innerHTML = null
-            this.content.appendChild(page.element)
+            let pageEle = document.getElementById('page')
+            if (pageEle) pageEle.remove()
+            document.body.appendChild(page.element)
             await page.load()
          })
       } catch(err) {
@@ -70,12 +48,20 @@ class App {
       }
    }
 
+   removeScripts() {
+      let css = document.getElementById('css')
+      if (css) css.remove()
+      let script = document.getElementById('script')
+      if (script) script.remove()
+   }
+
    async loadScripts(resource)
    {
       return new Promise((resolve, reject) => {
          try {
             if(resource.href) {
                let ele = document.createElement('link')
+               ele.id = 'css'
                ele.setAttribute('rel', 'stylesheet')
                ele.setAttribute('href',`${resource.href}?v=${resource.version}`)
                document.head.appendChild(ele)
@@ -83,6 +69,7 @@ class App {
 
             if(resource.src) {
                let scr = document.createElement('script')
+               scr.id = 'script'
                scr.setAttribute('async', true)
                scr.setAttribute('type','text/javascript')
                scr.setAttribute('src',`${resource.src}?v=${resource.version}`)
@@ -97,27 +84,28 @@ class App {
       })
    }
 
+   get resources()
+   {
+      return {
+         src: `./pages/${state.currentPage}/${state.currentPage}.js`,
+         href: `./pages/${state.currentPage}/${state.currentPage}.css`,
+         version: this.pageVersion[state.currentPage]
+      }
+   }
+
+   get pageVersion()
+   {
+      const result = {}
+      // result[pages.FOCUS] = 0;
+      result[pages.HOME] = 0;
+      result[pages.QUIZ] = 0;
+      result[pages.SETTINGS] = 0;
+      result[pages.STATS] = 0;
+      result[pages.MATERIAL] = 0;
+      return result
+   }
+
    //#region Funtility API
-
-   //  showLoadingModal()
-   //  {
-   //    this.hideLoadingModal()
-   //    let modal = document.createElement('div')
-   //    modal.classList.add('modal')
-   //    modal.classList.add('loading')
-      
-   //    let bg = document.createElement('div')
-   //    bg.classList.add('modal-bg')
-   //    bg.id = 'loading-modal'
-   //    bg.appendChild(modal)
-   //    document.body.appendChild(bg)
-   //  }
-
-   //  hideLoadingModal()
-   //  {
-   //      let ele = document.getElementById('loading-modal')
-   //      if (ele) ele.remove()
-   //  }
 
     processApiResponse(apiResponse)
     {
@@ -167,11 +155,13 @@ class App {
       msg.innerText = message
 
       let ok = document.createElement('div')
+      ok.classList.add('btn')
       ok.classList.add('ok')
       ok.innerText = 'OK'
       ok.addEventListener('click', okFn)
 
       let cancel = document.createElement('div')
+      cancel.classList.add('btn')
       cancel.classList.add('cancel')
       cancel.innerText = 'CANCEL'
       cancel.addEventListener('click', this.hideModal)
@@ -188,15 +178,15 @@ class App {
 
    //#region Form Modal
 
-   formModal(form) {
-      this.hideModal()
+   // formModal(form) {
+   //    this.hideModal()
 
-      let bg = document.createElement('div')
-      bg.id = 'modal-bg'
-      bg.addEventListener('click', this.hideModal)
-      bg.appendChild(form)
-      document.body.appendChild(bg)
-   }
+   //    let bg = document.createElement('div')
+   //    bg.id = 'modal-bg'
+   //    bg.addEventListener('click', this.hideModal)
+   //    bg.appendChild(form)
+   //    document.body.appendChild(bg)
+   // }
 
    //#endregion
    
@@ -208,7 +198,7 @@ class App {
    //#endregion
 }
 
-class TopBar {
+class SiteHeader {
    constructor(siteName) {
       this.siteName = siteName
    }
@@ -216,7 +206,7 @@ class TopBar {
    get element()
    {
       let e = document.createElement('div')
-      e.id = 'top-bar'
+      e.id = 'site-header'
       e.appendChild(this.siteLabel)
       e.appendChild(document.createElement('div'))
       e.appendChild(this.signIn)
@@ -226,8 +216,12 @@ class TopBar {
    get siteLabel()
    {
       let e = document.createElement('div')
-      e.id = 'site-lbl'
+      e.classList.add('site-label')
       e.innerText = this.siteName;
+      e.addEventListener('click', async () => {
+         state.currentPage = pages.HOME
+         await app.route()
+      })
       return e
    }
 
@@ -239,59 +233,88 @@ class TopBar {
    }
 }
 
-/**
- * Three options: Focus, Subjects, and Settings
- */
-class Navigation {
-   constructor() { }
-
-   get element()
-   {
-      let div = document.createElement('div')
-      div.id = 'nav'
-      div.appendChild(this.listItem('Focus', pages.FOCUS))
-      div.appendChild(this.listItem('Subjects', pages.SUBJECT))
-      div.appendChild(this.listItem('Settings', pages.SETTINGS))
-      return div
-   }
-
-   listItem(text, page)
-   {
-      let div = document.createElement('div')
-      div.classList.add('btn')
-      div.innerText = text
-      if (state.currentPage === page)
-      {
-         div.classList.add('selected')
+navigation = {
+   get element() {
+      let n = this.nav
+      if (state.quiz.id > 0) {
+         n.classList.add('quiz')
+         // don't show the regular nav items
+         // show the quiz items: 'Question # of #', 'Show Answer', 'Quit Quiz'
       } else {
-         div.addEventListener('click', () => {
-            state.currentPage = page
-            window.location = window.location.pathname
+         n.classList.add('standard')
+         n.appendChild(this.materialBtn)
+         n.appendChild(this.quizBtn)
+         n.appendChild(this.statsBtn)
+         n.appendChild(this.settingsBtn)
+      }
+      return n
+   },
+
+   get nav() {
+      let nav = document.getElementById('nav')
+      if (nav) {
+         nav.innerHTML = null
+      } else {
+         nav = document.createElement('div')
+         nav.id = 'nav'
+      }
+      return nav
+   },
+
+   get materialBtn() {
+      let ele = this.getNavItemPill("Study Material", state.currentPage == pages.MATERIAL)
+      ele.id = 'study-material'
+      if (state.currentPage != pages.MATERIAL) {
+         ele.addEventListener('click', async () => {
+            state.currentPage = pages.MATERIAL
+            await app.route()
          })
       }
-      return div
+      return ele
+   },
+
+   get quizBtn() {
+      let ele = this.getNavItemPill("Create a Quiz", state.currentPage == pages.QUIZ)
+      ele.id = 'create-quiz'
+         if (state.currentPage != pages.QUIZ) {
+            ele.addEventListener('click', async () => {
+               state.currentPage = pages.QUIZ
+               await app.route()
+            })
+         }
+      return ele
+   },
+
+   getNavItemPill(word, selected) {
+      let ele = document.createElement('div')
+      ele.innerText = word
+      if (selected) {
+         ele.classList.add('pill-selected')
+      } else {
+         ele.classList.add('pill')
+      }
+      return ele
+   },
+
+   get statsBtn() {
+      let ele = document.createElement('div')
+      ele.id = 'stats'
+      if (state.currentPage != pages.STATS) {
+         ele.addEventListener('click', async () => {
+            state.currentPage = pages.STATS
+            await app.route()
+         })
+      }
+      return ele
+   },
+
+   get settingsBtn() {
+      let ele = document.createElement('div')
+      ele.id = 'settings'
+      ele.addEventListener('click', async () => {
+         state.currentPage = pages.SETTINGS
+         await app.route()
+      })
+      return ele
    }
-}
-
-class PageBase {
-   constructor(name) {
-      this.pageName = name
-    }
-
-   /**
-    * Override this to return the unloaded dom element that
-    * will be the content of the current page.
-    */
-   get element()
-   {
-     return document.createElement('div')
-   }
-
-   /**
-    * Overridable method for implementations of the Page class.
-    * This is called when the site is loaded. This should be 
-    * overriden by the inheriting PageBase class if it needs
-    * to perform any async loading.
-    */
-   async load() { }
 }

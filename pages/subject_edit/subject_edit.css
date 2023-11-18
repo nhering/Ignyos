@@ -1,3 +1,5 @@
+/*
+
 #content {
    background-color: rgb(30,35,40);
    color: rgb(206, 206, 206);
@@ -63,12 +65,6 @@
    background: linear-gradient(90deg, rgba(2555, 255, 255, .1), transparent);
 }
 
-/* #sub-desc {
-   padding-left: 12px;
-   min-height: 40px;
-   font-size: 17px;
-} */
-
 .edit-subject-form {
    user-select: none;
    grid-area: modal;
@@ -116,3 +112,5 @@
    outline: 1px solid slategray;
    border-radius: 5px;
 }
+
+*/

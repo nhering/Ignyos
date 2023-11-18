@@ -1,15 +1,25 @@
-class QuizPage extends PageBase {
-   constructor()
-   {
-      super()
-   }
-
-   get element()
-   {
+page = {
+   get element() {
       let ele = document.createElement('div')
+      ele.id = 'page'
       ele.innerText = "Quiz"
       return ele
-   }
+   },
+   load() {}
 }
 
-page = new QuizPage()
+// class QuizPage extends PageBase {
+//    constructor()
+//    {
+//       super()
+//    }
+
+//    get element()
+//    {
+//       let ele = document.createElement('div')
+//       ele.innerText = "Quiz"
+//       return ele
+//    }
+// }
+
+// page = new QuizPage()

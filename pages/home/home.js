@@ -1,15 +1,25 @@
-class HomePage extends PageBase {
-   constructor()
-   {
-      super()
-   }
-
-   get element()
-   {
+page = {
+   get element() {
       let ele = document.createElement('div')
-      ele.innerText = "Sign In to continue."
+      ele.id = 'page'
+      ele.innerText = "Welcome to Ignyos. Here's some information about the site."
       return ele
-   }
+   },
+   load() {}
 }
 
-page = new HomePage()
+// class HomePage extends PageBase {
+//    constructor()
+//    {
+//       super()
+//    }
+
+//    get element()
+//    {
+//       let ele = document.createElement('div')
+//       ele.innerText = "Welcome to Ignyos. Here's some information about the site."
+//       return ele
+//    }
+// }
+
+// page = new HomePage()
