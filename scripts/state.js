@@ -140,10 +140,95 @@ class State {
       if (!this._topics) this._topics = []
       return this._topics
    }
-
    set topics(data)
    {
-      this._topi_topicsList = data.length ? data : []
+      this._topics = data.length ? data : []
+      this.setLocal()
+   }
+
+   addNewTopic(data) {
+      this.selectedTopicId = data.id
+      this.topics.push(data)
+      this.topics.sort((a,b) => {
+         return a.title.localeCompare(b.title)
+      })
+      this.setLocal()
+   }
+
+   updateTopic(data) {
+      this.selectedTopicId = data.id
+      let i = this.topics.findIndex((e) => {
+         e.id == data.id
+      })
+      this.topics[i] = data
+      this.topics.sort((a,b) => {
+         return a.title.localeCompare(b.title)
+      })
+      this.setLocal()
+   }
+
+   deleteTopic(data) {
+      this.selectedTopicId = 0
+      let i = this.topics.findIndex((e) => {
+         e.id == data.id
+      })
+      this.topics.splice(i,1)
+      this.setLocal()
+   }
+
+   //#endregion
+
+   //#region Questions
+
+   _selectedQuestionId = 0
+   get selectedQuestionId() {
+      return this._selectedQuestionId
+   }
+   set selectedQuestionId(id) {
+      if (this._selectedQuestionId == id) return
+      this._selectedQuestionId = id
+   }
+
+   _questions = []
+   get questions()
+   {
+      if (!this._questions) this._questions = []
+      return this._questions
+   }
+   set questions(data)
+   {
+      this._questions = data.length ? data : []
+      this.setLocal()
+   }
+
+   addQuestion(data) {
+      this.selectedQuestionId = data.id
+      this.questions.push(data)
+      this.questions.sort((a,b) => {
+         return a.shortPhrase.localeCompare(b.shortPhrase)
+      })
+      this.setLocal()
+   }
+
+   updateQuestion(data) {
+      this.selectedQuestionId = data.id
+      let i = this.questions.findIndex((e) => {
+         e.id == data.id
+      })
+      this.questions[i] = data
+      this.questions.sort((a,b) => {
+         return a.shortPhrase.localeCompare(b.shortPhrase)
+      })
+      this.setLocal()
+   }
+
+   deleteQuestion(data) {
+      this.selectedQuestionId = 0
+      let i = this.questions.findIndex((e) => {
+         e.id == data.id
+      })
+      this.questions.splice(i,1)
+      this.setLocal()
    }
 
    //#endregion
@@ -160,6 +245,8 @@ class State {
          this._accountSubjects = []
          this._selectedTopicId = 0
          this._topics = []
+         this._selectedQuestionId = 0
+         this._questions = []
       }
       else
       {
@@ -170,6 +257,8 @@ class State {
          this._accountSubjects = local.accountSubjects
          this._selectedTopicId = local.selectedTopicId
          this._topics = local.topics
+         this._selectedQuestionId = local.selectedQuestionId
+         this._questions = local.questions
       }
       this.setLocal()
    }
@@ -187,7 +276,9 @@ class State {
          "selectedSubjectId": "${this.selectedSubjectId}",
          "accountSubjects": ${JSON.stringify(this.accountSubjects)},
          "selectedTopicId": "${this.selectedTopicId}",
-         "topics": ${JSON.stringify(this.topics)}
+         "topics": ${JSON.stringify(this.topics)},
+         "selectedQuestionId": "${this.selectedQuestionId}",
+         "questions": ${JSON.stringify(this.questions)}
       }`
    }
 
