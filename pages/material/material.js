@@ -101,19 +101,28 @@ page = {
       })
    },
 
-   subjectListItem(acctSub) {
-      console.log(acctSub)
+   subjectListItem(subject) {
       let ele = document.createElement('div')
-      ele.id = `sub-${acctSub.subject.id}`
-      ele.innerText = acctSub.subject.title
-      if (state.selectedSubjectId == acctSub.subject.id) {
+      ele.id = `sub-${subject.id}`
+
+      let focus = document.createElement('span')
+      if (subject.focusTopicIds > 0) focus.innerText = '*'
+      ele.appendChild(focus)
+
+      let txt = document.createElement('div')
+      txt.innerText = subject.title
+      ele.appendChild(txt)
+
+      if (state.selectedSubjectId == subject.id) {
          ele.classList.add('item-selected')
-         ele.appendChild(this.editAcctSubBtn(acctSub))
-         ele.appendChild(this.deleteAcctSubBtn(acctSub))
+         ele.appendChild(this.editSubjectBtn(subject))
+         ele.appendChild(this.deleteSubjectBtn(subject))
       } else {
          ele.classList.add('item')
          ele.addEventListener('click', async () => {
-            state.selectedSubjectId = acctSub.subject.id
+            state.selectedSubjectId = subject.id
+            state.selectedTopicId = 0
+            state.selectedQuestionId = 0
             // this.populateSubjectList()
             await app.route()
          })
@@ -121,56 +130,56 @@ page = {
       return ele
    },
 
-   editAcctSubBtn(acctSub) {
+   editSubjectBtn(subject) {
       let ele = document.createElement('div')
       ele.classList.add('edit')
       ele.addEventListener('click', () => {
-         let item = document.getElementById(`sub-${acctSub.subject.id}`)
-         let edit = this.subjectListItemEditing(acctSub)
+         let item = document.getElementById(`sub-${subject.id}`)
+         let edit = this.subjectListItemEditing(subject)
          item.replaceWith(edit)
          document.getElementById('edit-subject').focus()
       })
       return ele
    },
 
-   deleteAcctSubBtn(acctSub) {
+   deleteSubjectBtn(subject) {
       let ele = document.createElement('div')
       ele.classList.add('trash')
       ele.addEventListener('click', () => {
          app.confirm(async () => {
-            await this.deleteSubject(acctSub)
-         },`Delete "${acctSub.subject.title}"?`)
+            await this.deleteSubject(subject)
+         },`Delete "${subject.title}"?`)
       })
       return ele
    },
 
-   async deleteSubject(acctSub) {
-      let response = await api.DELETE('ignyos/subject', [["id",acctSub.subject.id]])
+   async deleteSubject(subject) {
+      let response = await api.DELETE('ignyos/subject', [["id",subject.id]])
       let data = app.processApiResponse(response)
-      if (data) state.deleteAccountSubject(acctSub)
+      if (data) state.deleteAccountSubject(subject)
       await app.route()
    },
 
-   subjectListItemEditing(acctSub) {
+   subjectListItemEditing(subject) {
       let ele = document.createElement('div')
-      ele.id = `sub-${acctSub.subject.id}`
+      ele.id = `sub-${subject.id}`
       ele.classList.add('item-editing')
-      ele.appendChild(this.getEditSubjectInput(acctSub))
-      ele.appendChild(this.getEditSubjectButton(acctSub))
+      ele.appendChild(this.getEditSubjectInput(subject))
+      ele.appendChild(this.getEditSubjectButton(subject))
       return ele
    },
 
-   getEditSubjectInput(acctSub) {
+   getEditSubjectInput(subject) {
       let input = document.createElement('input')
       input.type = 'text'
       input.spellcheck = false
       input.placeholder = 'A title is required!'
-      input.value = acctSub.subject.title
+      input.value = subject.title
       input.id = 'edit-subject'
       input.classList.add('edit-subject')
       input.addEventListener('keyup',async (event) => {
          if (event.key == 'Enter') {
-            await this.editSubject(acctSub)
+            await this.editSubject(subject)
          } else if (event.key == 'Escape') {
             await app.route()
          }
@@ -178,24 +187,26 @@ page = {
       return input
    },
 
-   getEditSubjectButton(acctSub) {
+   getEditSubjectButton(subject) {
       let btn = document.createElement('div')
       btn.classList.add('btn')
       btn.classList.add('check')
       btn.addEventListener('click', async () => {
-         await this.editSubject(acctSub)
+         await this.editSubject(subject)
       })
       return btn
    },
 
-   async editSubject(acctSub) {
+   async editSubject(subject) {
       let val = document.getElementById('edit-subject').value.trim()
       if (val == '') return
-      acctSub.subject.title = val
-      let response = await api.PUT('ignyos/subject', acctSub.subject)
+      subject.title = val
+      let response = await api.PUT('ignyos/subject', subject)
       let data = app.processApiResponse(response)
-      state.updateAccountSubject(data)
-      await app.route()
+      if (data === true) {
+         state.updateAccountSubject(subject)
+         await app.route()
+      }
    },
 
    //#endregion
@@ -293,7 +304,13 @@ page = {
    topicListItem(topic) {
       let ele = document.createElement('div')
       ele.id = `top-${topic.id}`
-      ele.innerText = topic.title
+
+      ele.appendChild(this.getFocusTopicBtn(topic))
+
+      let txt = document.createElement('div')
+      txt.innerText = topic.title
+      ele.appendChild(txt)
+
       if (state.selectedTopicId == topic.id) {
          ele.classList.add('item-selected')
          ele.appendChild(this.editTopicBtn(topic))
@@ -302,9 +319,33 @@ page = {
          ele.classList.add('item')
          ele.addEventListener('click', async () => {
             state.selectedTopicId = topic.id
+            state.selectedQuestionId = 0
             await app.route()
          })
       }
+      return ele
+   },
+
+   getFocusTopicBtn(topic) {
+      let ele = document.createElement('div')
+      ele.classList.add('focus-btn')
+      if (state.selectedSubject.focusTopicIds.includes(topic.id)) {
+         // ele.classList.add('selected')
+         ele.innerText = '*'
+      }
+      ele.addEventListener('click', async (event) => {
+         event.stopImmediatePropagation()
+         state.toggleFocusTopic(topic.id)
+         let body = {
+            accountId: null,
+            subjectId: state.selectedSubjectId,
+            focusTopicIds: JSON.stringify(state.selectedSubject.focusTopicIds)
+         }
+         let response = await api.PUT('ignyos/subject/focus',body)
+         let data = app.processApiResponse(response)
+         state.updateAccountSubject(data)
+         await app.route()
+      })
       return ele
    },
 
@@ -394,7 +435,7 @@ page = {
       if (state.selectedTopicId == "0") return
       let response = await api.GET("ignyos/Question/List",[['topicId',state.selectedTopicId]])
       let data = app.processApiResponse(response)
-      state.topics = data
+      state.questions = data
       this.populateQuestionList()
    },
 
@@ -434,7 +475,11 @@ page = {
       input.classList.add('new-question')
       input.addEventListener('keyup',async (event) => {
          if (event.key == 'Enter') {
-            await this.createNewQuestion()
+            let val = document.getElementById('new-question').value.trim()
+            if (val == '') return
+            state.selectedQuestionId = 0
+            state.selectedQuestionId.shortPhrase = val
+            await this.showQuestionModal()
          } else if (event.key == 'Escape') {
             document.getElementById('new-question').value = ''
          }
@@ -447,18 +492,13 @@ page = {
       btn.classList.add('btn')
       btn.classList.add('plus')
       btn.addEventListener('click', async () => {
-         await this.createNewQuestion()
+         let val = document.getElementById('new-question').value.trim()
+         if (val == '') return
+         state.selectedQuestionId = 0
+         state.selectedQuestionId.shortPhrase = val
+         await this.showQuestionModal()
       })
       return btn
-   },
-
-   async createNewQuestion() {
-      let val = document.getElementById('new-question').value.trim()
-      if (val == '') return
-      let response = await api.POST('ignyos/question', { topicId: state.selectedTopicId, shortPhrase: val })
-      let data = app.processApiResponse(response)
-      state.addQuestion(data)
-      app.route()
    },
 
    get questionList() {
@@ -498,11 +538,9 @@ page = {
    editQuestionBtn(question) {
       let ele = document.createElement('div')
       ele.classList.add('edit')
-      ele.addEventListener('click', () => {
-         let item = document.getElementById(`que-${question.id}`)
-         // TODO 
-         // - call to api to get the question
-         // - open a modal with the edit question form
+      ele.addEventListener('click', async () => {
+         state.selectedQuestionId = question.id
+         await this.showQuestionModal()
       })
       return ele
    },
@@ -523,6 +561,160 @@ page = {
       let data = app.processApiResponse(response)
       if (data) state.deleteTopic(question)
       await app.route()
+   },
+
+   //#endregion
+
+   //#region Question Modal
+
+   async showQuestionModal()
+   {
+      document.getElementById('site-header').classList.add('blur')
+      document.getElementById('nav').classList.add('blur')
+      await this.loadQuestion()
+      app.formModal('question-modal-bg',this.questionModal)
+   },
+
+   async loadQuestion() {
+      if (state.selectedQuestionId == 0) {
+         let val = document.getElementById('new-question').value.trim()
+         state.question = { shortPhrase: val }
+      } else {
+         let response = await api.GET("ignyos/Question",[['id',state.selectedQuestionId]])
+         let data = app.processApiResponse(response)
+         state.question = data
+      }
+   },
+
+   get questionModal() {
+      let sp = document.createElement('input')
+      sp.id = 'short-phrase'
+      sp.type = 'text'
+      sp.value = state.question.shortPhrase
+
+      let ph = document.createElement('textarea')
+      ph.id = 'phrase'
+      ph.placeholder = 'Enter the full phrasing of the question here.'
+      ph.rows = 5
+      ph.innerText = state.question.phrase
+
+      let an = document.createElement('textarea')
+      an.id = 'answer'
+      an.placeholder = 'Enter the answer to the question here.'
+      an.innerText = state.question.answer
+
+      let frm = document.createElement('div')
+      frm.classList.add('question-form')
+      frm.appendChild(sp)
+      frm.appendChild(ph)
+      frm.appendChild(an)
+      frm.appendChild(this.questionControls)
+
+      let ele = document.createElement('div')
+      ele.classList.add('question-modal')
+      ele.appendChild(frm)
+      return ele
+   },
+
+   get questionControls() {
+      let save = document.createElement('div')
+      save.innerText = "SAVE"
+      save.classList.add('btn')
+      save.classList.add('save')
+      save.addEventListener('click', async () => {
+         await this.saveQuestion()        
+      })
+
+      let cancel = document.createElement('div')
+      cancel.innerText = "CANCEL"
+      cancel.classList.add('btn')
+      cancel.classList.add('cancel')
+      cancel.addEventListener('click', () => {
+         document.getElementById('site-header').classList.remove('blur')
+         document.getElementById('nav').classList.remove('blur')
+         app.hideModal()
+      })
+
+      let ele = document.createElement('div')
+      ele.classList.add('question-controls')
+      ele.appendChild(save)
+      ele.appendChild(cancel)
+      return ele
+   },
+
+   async saveQuestion() {
+      let form = this.questionForm
+      if (form.isValid())
+      {
+         let response
+         if (form.id == 0) {
+            response = await api.POST("ignyos/Question", form)
+            let data = app.processApiResponse(response)
+            state.addQuestion(data)
+         } else {
+            response = await api.PUT("ignyos/Question", form)
+            let data = app.processApiResponse(response)
+            state.updateQuestion(data)
+         }
+         this.populateQuestionList()
+         document.getElementById('site-header').classList.remove('blur')
+         document.getElementById('nav').classList.remove('blur')
+         app.hideModal()
+      }
+   },
+
+   get questionForm() {
+      let shortPhrase = document.getElementById('short-phrase').value.trim()
+      let phrase = document.getElementById('phrase').value.trim()
+      let answer = document.getElementById('answer').value.trim()
+
+      let isValid = () => {
+         let result = true
+         if (shortPhrase == '') {
+            result = false
+            app.showErrors(['A short phrasing of the question is required.'])
+         }
+         if (phrase == '') {
+            result = false
+            app.showErrors(['The full phrasing of the question is required.'])
+         }
+         if (answer == '') {
+            result = false
+            app.showErrors(['The answer to the question is required.'])
+         }
+         return result
+      }
+
+      return {
+         'id': state.selectedQuestionId,
+         'shortPhrase': shortPhrase,
+         'phrase': phrase,
+         'answer': answer,
+         'topicId': state.selectedTopicId,
+         'isValid': isValid
+      }
+   },
+
+   async createQuestion() {
+      if (this.questionForm.isValid()) {
+            let response = await api.POST('ignyos/question', this.questionForm)
+            let data = app.processApiResponse(response)
+            state.addQuestion(data)
+            app.route()
+      }
+   },
+
+   async updateQuestion() {
+      if (this.questionForm.isValid()) {
+            let response = await api.PUT('ignyos/question', this.questionForm)
+            let data = app.processApiResponse(response)
+            state.updateQuestion(data)
+            app.route()
+      }
+   },
+
+   updateQuestion() {
+
    },
 
    //#endregion

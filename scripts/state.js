@@ -2,17 +2,17 @@ const pages = {
    HOME: "Home",
    MATERIAL: "Material",
    QUIZ: "Quiz",
-   SETTINGS: "Settings",
-   STATS: "Stats",
+   // SETTINGS: "Settings",
+   // STATS: "Stats",
 
    isValid(page)
    {
       if (
          page === this.HOME ||
          page === this.MATERIAL ||
-         page === this.QUIZ ||
-         page === this.SETTINGS ||
-         page === this.STATS
+         page === this.QUIZ
+         // page === this.SETTINGS ||
+         // page === this.STATS
       ) {
          return true
       } else {
@@ -55,8 +55,31 @@ class State {
    }
    set quiz(data)
    {
-      this._quiz = data.quizId ? data : new Quiz()
+      if (data) {
+         // console.log('if data')
+         this._quiz = data.id ? new Quiz(data) : new Quiz()
+         if (this._quiz.id > 0) this.currentPage = pages.QUIZ
+      } else {
+         // console.log('else data')
+         this._quiz = new Quiz()
+      }
       this.setLocal()
+   }
+
+   getNextQuestionId() {
+      let potentials = []
+      this.quiz.allQuestionIds.forEach(aid => {
+         this.quiz.allQuestionIds.forEach(qid => {
+            if (aid != qid) {
+               if (!potentials.includes(qid)) potentials.push(qid)
+            }
+         })
+      })
+      console.log('potentials')
+      console.log(potentials)
+      let id = Math.floor(Math.random() * potentials.length)
+      console.log(`random select: ${id}`)
+      return id
    }
 
    //#endregion
@@ -70,7 +93,17 @@ class State {
    set selectedSubjectId(id) {
       if (this._selectedSubjectId == id) return
       this._selectedSubjectId = id
-      this.selectedTopicId = 0
+      this.setLocal()
+   }
+
+   get selectedSubject() {
+      let result = {}
+      this.accountSubjects.forEach(sub => {
+         if (sub.id == this.selectedSubjectId) {
+            result = sub
+         }
+      })
+      return result
    }
 
    _accountSubjects = []
@@ -82,32 +115,35 @@ class State {
    set accountSubjects(data)
    {
       this._accountSubjects = data.length ? data : []
-      this._accountSubjects.forEach(actSub => {
-         actSub.focusTopicIds = JSON.parse(actSub.focusTopicIds)
+      let unsetSelectedSubjectId = true
+      this._accountSubjects.forEach(subject => {
+         subject.focusTopicIds = JSON.parse(subject.focusTopicIds)
+         if (subject.id == this._selectedSubjectId) unsetSelectedSubjectId = false
       });
+      if (unsetSelectedSubjectId) this.selectedSubjectId = 0
       this.accountSubjects.sort((a,b) => {
-         return a.subject.title.localeCompare(b.subject.title)
+         return a.title.localeCompare(b.title)
       })
       this.setLocal()
    }
 
    addNewAccountSubject(data) {
-      this.selectedSubjectId = data.subject.id
+      this.selectedSubjectId = data.id
       this.accountSubjects.push(data)
       this.accountSubjects.sort((a,b) => {
-         return a.subject.title.localeCompare(b.subject.title)
+         return a.title.localeCompare(b.title)
       })
       this.setLocal()
    }
 
    updateAccountSubject(data) {
-      this.selectedSubjectId = data.subject.id
+      this.selectedSubjectId = data.id
       let i = this.accountSubjects.findIndex((e) => {
-         e.subject.id == data.subject.id
+         e.id == data.id
       })
       this.accountSubjects[i] = data
       this.accountSubjects.sort((a,b) => {
-         return a.subject.title.localeCompare(b.subject.title)
+         return a.title.localeCompare(b.title)
       })
       this.setLocal()
    }
@@ -115,7 +151,7 @@ class State {
    deleteAccountSubject(data) {
       this.selectedSubjectId = 0
       let i = this.accountSubjects.findIndex((e) => {
-         e.subject.id == data.subject.id
+         e.id == data.id
       })
       this.accountSubjects.splice(i,1)
       this.setLocal()
@@ -132,6 +168,7 @@ class State {
    set selectedTopicId(id) {
       if (this._selectedTopicId == id) return
       this._selectedTopicId = id
+      this.setLocal()
    }
 
    _topics = []
@@ -143,6 +180,19 @@ class State {
    set topics(data)
    {
       this._topics = data.length ? data : []
+      this.topics.sort((a,b) => {
+         return a.title.localeCompare(b.title)
+      })
+      this.setLocal()
+   }
+
+   toggleFocusTopic(id) {
+      let i = this.selectedSubject.focusTopicIds.indexOf(id)
+      if (i > -1) {
+         this.selectedSubject.focusTopicIds.splice(i, 1)
+      } else {
+         this.selectedSubject.focusTopicIds.push(id)
+      }
       this.setLocal()
    }
 
@@ -231,6 +281,35 @@ class State {
       this.setLocal()
    }
 
+   _question = false
+   get question() {
+      if (!this._question) {
+         this._question = {
+            id: 0,
+            shortPhrase: '',
+            phrase: '',
+            answer: ''
+         }
+      }
+      return this._question
+   }
+   set question(data) {
+      if (data) {
+         let _id = data.hasOwnProperty('id') ? data.id : 0
+         let _shortPhrase = data.hasOwnProperty('shortPhrase') ? data.shortPhrase : ''
+         let _phrase = data.hasOwnProperty('phrase') ? data.phrase : ''
+         let _answer = data.hasOwnProperty('answer') ? data.answer : ''
+
+         this._question = {
+            id: _id,
+            shortPhrase: _shortPhrase,
+            phrase: _phrase,
+            answer: _answer
+         }
+         this.setLocal()
+      }
+   }
+
    //#endregion
 
    //#region Browser Local Storage
@@ -247,6 +326,7 @@ class State {
          this._topics = []
          this._selectedQuestionId = 0
          this._questions = []
+         this._question = false
       }
       else
       {
@@ -259,6 +339,7 @@ class State {
          this._topics = local.topics
          this._selectedQuestionId = local.selectedQuestionId
          this._questions = local.questions
+         this._question = local.question
       }
       this.setLocal()
    }
@@ -278,9 +359,44 @@ class State {
          "selectedTopicId": "${this.selectedTopicId}",
          "topics": ${JSON.stringify(this.topics)},
          "selectedQuestionId": "${this.selectedQuestionId}",
-         "questions": ${JSON.stringify(this.questions)}
+         "questions": ${JSON.stringify(this.questions)},
+         "question": ${JSON.stringify(this.question)}
       }`
    }
 
    //#endregion
+}
+
+class Quiz {
+   constructor(data = {})
+   {
+      if (!data) data = {}
+      this.id = data.hasOwnProperty('id') ? data.id : 0
+      this.startDateUTC = data.hasOwnProperty('startDateUTC') ? data.startDateUTC : null
+
+      this.allQuestionIds = data.hasOwnProperty('allQuestionIds') ? data.allQuestionIds : []
+      if (typeof this.allQuestionIds == 'string') {
+         this.allQuestionIds = JSON.parse(this.allQuestionIds)
+      } else if (this.allQuestionIds == null) {
+         this.allQuestionIds = []
+      }
+
+      this.answeredQuestionIds = data.hasOwnProperty('answeredQuestionIds') ? data.answeredQuestionIds : []
+      if (typeof this.answeredQuestionIds == 'string') {
+         this.answeredQuestionIds = JSON.parse(this.answeredQuestionIds)
+      } else if (this.answeredQuestionIds == null) {
+         this.answeredQuestionIds = []
+      }
+   }
+
+   toJson() {
+      // this.allQuestionIds = JSON.stringify(this.allQuestionIds)
+      // this.answeredQuestionIds = JSON.stringify(this.answeredQuestionIds)
+      return {
+         id: this.id,
+         allQuestionIds: `${JSON.stringify(this.allQuestionIds)}`,
+         answeredQuestionIds: `${JSON.stringify(this.answeredQuestionIds)}`,
+         startDateUTC: this.startDateUTC
+      }
+   }
 }

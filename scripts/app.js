@@ -6,22 +6,40 @@ class App {
    }
 
    async route() {
-      if (!api.userIsSignedIn) {
+      this.initSiteHeader()
+      if (api.userIsSignedIn) {
+         if (state.quiz.id == 0) {
+            await this.getOpenQuiz()
+         }
+         if (state.quiz.id != 0) {
+            state.currentPage = pages.QUIZ
+         } else {
+            state.currentPage = pages.MATERIAL
+         }
+         this.initNav()
+      } else {
          state.currentPage = pages.HOME
       }
+      await this.loadPage()
+   }
 
+   async getOpenQuiz() {
+      let response = await api.GET("ignyos/quiz/open")
+      let data = this.processApiResponse(response)
+      state.quiz = data
+   }
+
+   initSiteHeader() {
       let siteHeader = document.getElementById('site-header')
       if (siteHeader) siteHeader.remove()
       document.body.appendChild(new SiteHeader(appName).element)
       this.funtilityUi = new FuntilityUI(api)
+   }
 
-      if (api.userIsSignedIn) {
-         let nav = document.getElementById('nav')
-         if (nav) nav.remove()
-         document.body.appendChild(navigation.element)
-      }
-      
-      await this.loadPage()
+   initNav() {
+      let nav = document.getElementById('nav')
+      if (nav) nav.remove()
+      document.body.appendChild(navigation.element)
    }
 
    get title()
@@ -96,42 +114,41 @@ class App {
    get pageVersion()
    {
       const result = {}
-      // result[pages.FOCUS] = 0;
       result[pages.HOME] = 0;
       result[pages.QUIZ] = 0;
-      result[pages.SETTINGS] = 0;
-      result[pages.STATS] = 0;
+      // result[pages.SETTINGS] = 0;
+      // result[pages.STATS] = 0;
       result[pages.MATERIAL] = 0;
       return result
    }
 
    //#region Funtility API
 
-    processApiResponse(apiResponse)
-    {
-        console.log(apiResponse)
-        if (apiResponse.hasErrors) {
-         apiResponse.errors.forEach(err => {
-            console.error(err)
-         })
-            this.showErrors(apiResponse.errors)
-        }
-        return apiResponse.result
-    }
+   processApiResponse(apiResponse)
+   {
+      console.log(apiResponse)
+      if (apiResponse.hasErrors) {
+      apiResponse.errors.forEach(err => {
+         console.error(err)
+      })
+         this.showErrors(apiResponse.errors)
+      }
+      return apiResponse.result
+   }
 
-    showErrors(errors = [], duration = 5000) {
-        errors.forEach((err) => {
-            this.funtilityUi.showEphemeralMessage('fnt-msg-cntr',this.funtilityUi.messageType.ERROR,err, duration)
-        })
-    }
+   showErrors(errors = [], duration = 5000) {
+      errors.forEach((err) => {
+         this.funtilityUi.showEphemeralMessage('fnt-msg-cntr',this.funtilityUi.messageType.ERROR,err, duration)
+      })
+   }
 
-    showInfo(msg, duration = 5000) {
-      this.funtilityUi.showEphemeralMessage('fnt-msg-cntr',this.funtilityUi.messageType.INFO,msg,duration)
-    }
+   showInfo(msg, duration = 5000) {
+   this.funtilityUi.showEphemeralMessage('fnt-msg-cntr',this.funtilityUi.messageType.INFO,msg,duration)
+   }
 
-    showSuccess(msg, duration = 5000) {
-        this.funtilityUi.showEphemeralMessage('fnt-msg-cntr',this.funtilityUi.messageType.SUCCESS,msg,duration)
-    }
+   showSuccess(msg, duration = 5000) {
+      this.funtilityUi.showEphemeralMessage('fnt-msg-cntr',this.funtilityUi.messageType.SUCCESS,msg,duration)
+   }
 
    //#endregion
 
@@ -144,6 +161,7 @@ class App {
 
       let bg = document.createElement('div')
       bg.id = 'modal-bg'
+      bg.classList.add('confirm-modal-bg')
       bg.addEventListener('click', this.hideModal)
       bg.appendChild(this.getConfirmModal(okFn, message))
       document.body.appendChild(bg)
@@ -178,15 +196,15 @@ class App {
 
    //#region Form Modal
 
-   // formModal(form) {
-   //    this.hideModal()
+   formModal(bgClass, form) {
+      this.hideModal()
 
-   //    let bg = document.createElement('div')
-   //    bg.id = 'modal-bg'
-   //    bg.addEventListener('click', this.hideModal)
-   //    bg.appendChild(form)
-   //    document.body.appendChild(bg)
-   // }
+      let bg = document.createElement('div')
+      bg.id = 'modal-bg'
+      bg.classList.add(bgClass)
+      bg.appendChild(form)
+      document.body.appendChild(bg)
+   }
 
    //#endregion
    
@@ -215,12 +233,24 @@ class SiteHeader {
    
    get siteLabel()
    {
+      let img = document.createElement('img')
+      img.src = './images/logo.svg'
+
+      let span = document.createElement('span')
+      span.innerText = this.siteName;
+
       let e = document.createElement('div')
       e.classList.add('site-label')
-      e.innerText = this.siteName;
+      e.appendChild(img)
+      e.appendChild(span)
+
       e.addEventListener('click', async () => {
-         state.currentPage = pages.HOME
-         await app.route()
+         if (state.currentPage == pages.QUIZ) {
+            app.showInfo('Complete the quiz first.')
+         } else {
+            state.currentPage = pages.HOME
+            await app.route()
+         }
       })
       return e
    }
@@ -238,14 +268,15 @@ navigation = {
       let n = this.nav
       if (state.quiz.id > 0) {
          n.classList.add('quiz')
-         // don't show the regular nav items
-         // show the quiz items: 'Question # of #', 'Show Answer', 'Quit Quiz'
+         n.appendChild(this.questionCounter)
+         n.appendChild(this.showAnswerBtn)
+         n.appendChild(this.quitQuizBtn)
       } else {
          n.classList.add('standard')
          n.appendChild(this.materialBtn)
          n.appendChild(this.quizBtn)
-         n.appendChild(this.statsBtn)
-         n.appendChild(this.settingsBtn)
+         // n.appendChild(this.statsBtn)
+         // n.appendChild(this.settingsBtn)
       }
       return n
    },
@@ -261,6 +292,33 @@ navigation = {
       return nav
    },
 
+   get questionCounter() {
+      let ele = document.createElement('div')
+      let n = state.quiz.answeredQuestionIds.length + 1
+      let total = state.quiz.allQuestionIds.length
+      ele.innerText= `Question ${n} of ${total}`
+      ele.id = 'question-counter'
+      return ele
+   },
+
+   get showAnswerBtn() {
+      let ele = this.getNavItemPill("Show Answer", false)
+      ele.id = 'show-answer'
+      ele.addEventListener('click', () => {
+         page.showAnswer()
+      })
+      return ele
+   },
+
+   get quitQuizBtn() {
+      let ele = this.getNavItemPill("End Quiz", false)
+      ele.id = 'quit-quiz'
+      ele.addEventListener('click', async () => {
+         await page.quitQuiz()
+      })
+      return ele
+   },
+
    get materialBtn() {
       let ele = this.getNavItemPill("Study Material", state.currentPage == pages.MATERIAL)
       ele.id = 'study-material'
@@ -274,14 +332,21 @@ navigation = {
    },
 
    get quizBtn() {
-      let ele = this.getNavItemPill("Create a Quiz", state.currentPage == pages.QUIZ)
+      let ele = this.getNavItemPill("Take a Quiz", state.currentPage == pages.QUIZ)
       ele.id = 'create-quiz'
-         if (state.currentPage != pages.QUIZ) {
-            ele.addEventListener('click', async () => {
+      if (state.currentPage != pages.QUIZ) {
+         ele.addEventListener('click', async () => {
+            let response = await api.POST('ignyos/quiz')
+            let data = app.processApiResponse(response)
+            state.quiz = data
+            if (state.quiz.id > 0) {
                state.currentPage = pages.QUIZ
-               await app.route()
-            })
-         }
+            } else {
+               state.currentPage = pages.MATERIAL
+            }
+            await app.route()
+         })
+      }
       return ele
    },
 
@@ -296,25 +361,25 @@ navigation = {
       return ele
    },
 
-   get statsBtn() {
-      let ele = document.createElement('div')
-      ele.id = 'stats'
-      if (state.currentPage != pages.STATS) {
-         ele.addEventListener('click', async () => {
-            state.currentPage = pages.STATS
-            await app.route()
-         })
-      }
-      return ele
-   },
+   // get statsBtn() {
+   //    let ele = document.createElement('div')
+   //    ele.id = 'stats'
+   //    if (state.currentPage != pages.STATS) {
+   //       ele.addEventListener('click', async () => {
+   //          state.currentPage = pages.STATS
+   //          await app.route()
+   //       })
+   //    }
+   //    return ele
+   // },
 
-   get settingsBtn() {
-      let ele = document.createElement('div')
-      ele.id = 'settings'
-      ele.addEventListener('click', async () => {
-         state.currentPage = pages.SETTINGS
-         await app.route()
-      })
-      return ele
-   }
+   // get settingsBtn() {
+   //    let ele = document.createElement('div')
+   //    ele.id = 'settings'
+   //    ele.addEventListener('click', async () => {
+   //       state.currentPage = pages.SETTINGS
+   //       await app.route()
+   //    })
+   //    return ele
+   // }
 }
