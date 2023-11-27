@@ -13,8 +13,6 @@ class App {
          }
          if (state.quiz.id != 0) {
             state.currentPage = pages.QUIZ
-         } else {
-            state.currentPage = pages.MATERIAL
          }
          this.initNav()
       } else {
@@ -126,7 +124,6 @@ class App {
 
    processApiResponse(apiResponse)
    {
-      console.log(apiResponse)
       if (apiResponse.hasErrors) {
       apiResponse.errors.forEach(err => {
          console.error(err)
