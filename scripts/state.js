@@ -1,7 +1,7 @@
 const pages = {
-   HOME: "Home",
-   MATERIAL: "Material",
-   QUIZ: "Quiz",
+   HOME: "home",
+   MATERIAL: "material",
+   QUIZ: "quiz",
    // SETTINGS: "Settings",
    // STATS: "Stats",
 
@@ -56,11 +56,9 @@ class State {
    set quiz(data)
    {
       if (data) {
-         // console.log('if data')
          this._quiz = data.id ? new Quiz(data) : new Quiz()
          if (this._quiz.id > 0) this.currentPage = pages.QUIZ
       } else {
-         // console.log('else data')
          this._quiz = new Quiz()
       }
       this.setLocal()
@@ -75,10 +73,7 @@ class State {
             }
          })
       })
-      console.log('potentials')
-      console.log(potentials)
       let id = Math.floor(Math.random() * potentials.length)
-      console.log(`random select: ${id}`)
       return id
    }
 
