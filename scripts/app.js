@@ -8,11 +8,11 @@ class App {
    async route() {
       this.initSiteHeader()
       if (api.userIsSignedIn) {
-         if (state.quiz.id == 0) {
-            await this.getOpenQuiz()
-         }
+         await this.getOpenQuiz()
          if (state.quiz.id != 0) {
             state.currentPage = pages.QUIZ
+         } else {
+            state.currentPage = pages.MATERIAL
          }
          this.initNav()
       } else {
@@ -60,7 +60,7 @@ class App {
          })
       } catch(err) {
          console.log(err)
-         this.showErrors([err])
+         messageCenter.addError("Error loading page.")
       }
    }
 
@@ -125,26 +125,12 @@ class App {
    processApiResponse(apiResponse)
    {
       if (apiResponse.hasErrors) {
-      apiResponse.errors.forEach(err => {
-         console.error(err)
-      })
-         this.showErrors(apiResponse.errors)
+         apiResponse.errors.forEach(err => {
+            console.error(err)
+            messageCenter.addError(err)
+         })
       }
       return apiResponse.result
-   }
-
-   showErrors(errors = [], duration = 5000) {
-      errors.forEach((err) => {
-         this.funtilityUi.showEphemeralMessage('fnt-msg-cntr',this.funtilityUi.messageType.ERROR,err, duration)
-      })
-   }
-
-   showInfo(msg, duration = 5000) {
-   this.funtilityUi.showEphemeralMessage('fnt-msg-cntr',this.funtilityUi.messageType.INFO,msg,duration)
-   }
-
-   showSuccess(msg, duration = 5000) {
-      this.funtilityUi.showEphemeralMessage('fnt-msg-cntr',this.funtilityUi.messageType.SUCCESS,msg,duration)
    }
 
    //#endregion
@@ -243,7 +229,7 @@ class SiteHeader {
 
       e.addEventListener('click', async () => {
          if (state.currentPage == pages.QUIZ) {
-            app.showInfo('Complete the quiz first.')
+            messageCenter.addInfo('Complete the quiz first.')
          } else {
             state.currentPage = pages.HOME
             await app.route()
@@ -263,17 +249,17 @@ class SiteHeader {
 navigation = {
    get element() {
       let n = this.nav
-      if (state.quiz.id > 0) {
-         n.classList.add('quiz')
-         n.appendChild(this.questionCounter)
-         n.appendChild(this.showAnswerBtn)
-         n.appendChild(this.quitQuizBtn)
-      } else {
+      if (state.quiz.completeDateUTC || state.quiz.id == 0) {
          n.classList.add('standard')
          n.appendChild(this.materialBtn)
          n.appendChild(this.quizBtn)
          // n.appendChild(this.statsBtn)
          // n.appendChild(this.settingsBtn)
+      } else {
+         n.classList.add('quiz')
+         n.appendChild(this.questionCounter)
+         n.appendChild(this.showAnswerBtn)
+         n.appendChild(this.quitQuizBtn)
       }
       return n
    },
@@ -321,6 +307,7 @@ navigation = {
       ele.id = 'study-material'
       if (state.currentPage != pages.MATERIAL) {
          ele.addEventListener('click', async () => {
+            state.quiz = new Quiz()
             state.currentPage = pages.MATERIAL
             await app.route()
          })
@@ -336,11 +323,7 @@ navigation = {
             let response = await api.POST('ignyos/quiz')
             let data = app.processApiResponse(response)
             state.quiz = data
-            if (state.quiz.id > 0) {
-               state.currentPage = pages.QUIZ
-            } else {
-               state.currentPage = pages.MATERIAL
-            }
+            state.currentPage = pages.QUIZ
             await app.route()
          })
       }
@@ -379,4 +362,29 @@ navigation = {
    //    })
    //    return ele
    // }
+}
+
+messageCenter = {
+   get element() {
+      let ele = document.getElementById('msg-cntr')
+      if (!ele) {
+         ele = document.createElement('div')
+         ele.id = ('msg-cntr')
+         document.body.appendChild(ele)
+      }
+      return ele
+   },
+   addError(msg) {
+      this.addItem(msg,'err')
+   },
+   addInfo(msg) {
+      this.addItem(msg,'nfo')
+   },
+   addItem(msg,cls) {
+      let ele = document.createElement('div')
+      ele.classList.add(cls)
+      ele.innerText = msg
+      setTimeout(()=>{ele.remove()},3000)
+      this.element.appendChild(ele)
+   }
 }

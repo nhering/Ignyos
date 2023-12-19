@@ -56,7 +56,7 @@ class State {
    set quiz(data)
    {
       if (data) {
-         this._quiz = data.id ? new Quiz(data) : new Quiz()
+         this._quiz = data ? new Quiz(data) : new Quiz()
          if (this._quiz.id > 0) this.currentPage = pages.QUIZ
       } else {
          this._quiz = new Quiz()
@@ -65,16 +65,12 @@ class State {
    }
 
    getNextQuestionId() {
-      let potentials = []
-      this.quiz.allQuestionIds.forEach(aid => {
-         this.quiz.allQuestionIds.forEach(qid => {
-            if (aid != qid) {
-               if (!potentials.includes(qid)) potentials.push(qid)
-            }
-         })
+      let unanswered = []
+      this.quiz.allQuestionIds.forEach(q => {
+         if (!this.quiz.answeredQuestionIds.includes(q)) unanswered.push(q)
       })
-      let id = Math.floor(Math.random() * potentials.length)
-      return id
+      let i = Math.floor(Math.random() * unanswered.length)
+      return unanswered[i]
    }
 
    //#endregion
@@ -88,6 +84,10 @@ class State {
    set selectedSubjectId(id) {
       if (this._selectedSubjectId == id) return
       this._selectedSubjectId = id
+      this.selectedTopicId = 0
+      this.topics = []
+      this.selectedQuestionId = 0
+      this.questions = []
       this.setLocal()
    }
 
@@ -128,6 +128,7 @@ class State {
       this.accountSubjects.sort((a,b) => {
          return a.title.localeCompare(b.title)
       })
+      this.clearTopicsAndQuestions()
       this.setLocal()
    }
 
@@ -143,12 +144,16 @@ class State {
       this.setLocal()
    }
 
-   deleteAccountSubject(data) {
+   deleteAccountSubject(id) {
       this.selectedSubjectId = 0
       let i = this.accountSubjects.findIndex((e) => {
-         e.id == data.id
+         e.id == id
       })
       this.accountSubjects.splice(i,1)
+      this.selectedTopicId = 0
+      this.topics = []
+      this.selectedQuestionId = 0
+      this.questions = []
       this.setLocal()
    }
 
@@ -163,6 +168,8 @@ class State {
    set selectedTopicId(id) {
       if (this._selectedTopicId == id) return
       this._selectedTopicId = id
+      this.selectedQuestionId = 0
+      this.questions = []
       this.setLocal()
    }
 
@@ -197,6 +204,8 @@ class State {
       this.topics.sort((a,b) => {
          return a.title.localeCompare(b.title)
       })
+      this.selectedQuestionId = 0
+      this.questions = []
       this.setLocal()
    }
 
@@ -213,12 +222,20 @@ class State {
    }
 
    deleteTopic(data) {
+      let result = false
       this.selectedTopicId = 0
       let i = this.topics.findIndex((e) => {
          e.id == data.id
       })
       this.topics.splice(i,1)
+
+      i = this.selectedSubject.focusTopicIds.indexOf(data.id)
+      if (i > -1) {
+         result = true
+         this.selectedSubject.focusTopicIds.splice(i, 1)
+      }
       this.setLocal()
+      return result
    }
 
    //#endregion
@@ -307,6 +324,13 @@ class State {
 
    //#endregion
 
+   clearTopicsAndQuestions() {
+      this.selectedTopicId = 0
+      this.topics = []
+      this.selectedQuestionId = 0
+      this.questions = []
+   }
+
    //#region Browser Local Storage
 
    getLocal() {
@@ -367,7 +391,7 @@ class Quiz {
    {
       if (!data) data = {}
       this.id = data.hasOwnProperty('id') ? data.id : 0
-      this.startDateUTC = data.hasOwnProperty('startDateUTC') ? data.startDateUTC : null
+      this.completeDateUTC = data.hasOwnProperty('completeDateUTC') ? data.completeDateUTC : null
 
       this.allQuestionIds = data.hasOwnProperty('allQuestionIds') ? data.allQuestionIds : []
       if (typeof this.allQuestionIds == 'string') {
@@ -381,17 +405,6 @@ class Quiz {
          this.answeredQuestionIds = JSON.parse(this.answeredQuestionIds)
       } else if (this.answeredQuestionIds == null) {
          this.answeredQuestionIds = []
-      }
-   }
-
-   toJson() {
-      // this.allQuestionIds = JSON.stringify(this.allQuestionIds)
-      // this.answeredQuestionIds = JSON.stringify(this.answeredQuestionIds)
-      return {
-         id: this.id,
-         allQuestionIds: `${JSON.stringify(this.allQuestionIds)}`,
-         answeredQuestionIds: `${JSON.stringify(this.answeredQuestionIds)}`,
-         startDateUTC: this.startDateUTC
       }
    }
 }

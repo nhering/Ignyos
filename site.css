@@ -75,7 +75,7 @@ body {
 }
 
 .pill:hover {
-    animation: pulse-border-blue .8s infinite;
+    animation: pulse-border-blue .6s infinite;
     animation-direction: alternate;
 }
 
@@ -234,7 +234,7 @@ background-repeat: no-repeat;
 }
 
 .confirm-modal .ok:hover {
-    animation: pulse-border-blue .8s infinite;
+    animation: pulse-border-blue .6s infinite;
     animation-direction: alternate;
 }
 
@@ -243,8 +243,64 @@ background-repeat: no-repeat;
 }
 
 .confirm-modal .cancel:hover {
-    animation: pulse-border-blue .8s infinite;
+    animation: pulse-border-blue .6s infinite;
     animation-direction: alternate;
+}
+
+/*#endregion*/
+
+/*#region Message Center*/
+
+#msg-cntr {
+    display: grid;
+    row-gap: 10px;
+    padding-top: 10px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    justify-content: center;
+}
+
+#msg-cntr > div {
+    animation-name: slide-in-from-top;
+    animation-duration: 3.1s;
+    width: fit-content;
+    background-color: #000;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 6px;
+    padding: 6px;
+}
+
+@keyframes slide-in-from-top {
+    0% {
+        opacity: 0;
+        margin-top: -40px;
+    }
+    15% {
+        opacity: 1;
+        margin-top: 0;
+    }
+    85% {
+        opacity: 1;
+        margin-top: 0;
+    }
+    100% {
+        opacity: 0;
+        margin-top: 10;
+    }
+}
+
+.err {
+    border: solid 1px rgb(173, 34, 34);
+    color: rgb(173, 34, 34);
+}
+
+.nfo {
+    border: solid 1px rgb(34, 129, 173);
+    color: rgb(34, 129, 173);
 }
 
 /*#endregion*/
@@ -260,44 +316,26 @@ background-repeat: no-repeat;
 }
 
 .v-loading {
-    animation: v-loading .5s infinite;
+    animation: v-loading .3s infinite ease-in-out;
     animation-direction: alternate;
 }
 
 @keyframes v-loading {
-    from {
-        background: linear-gradient(180deg, rgba(255, 255, 255, .1), transparent);
+    0% {
+        background: rgba(255, 255, 255, .0);
     }
-    25% {
-        background: linear-gradient(180deg, rgba(255, 255, 255, .075), transparent);
-    }
-    50% {
-        background: linear-gradient(180deg, rgba(255, 255, 255, .05), transparent);
-    }
-    75% {
-        background: linear-gradient(180deg, rgba(255, 255, 255, .025), transparent);
-    }
-    to {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0), transparent);
+    100% {
+        background:rgba(255, 255, 255, .05);
     }
  }
 
  @keyframes pulse-border-blue {
     from { 
-         border: 1px solid transparent;
+        border: 1px solid transparent;
     }
     to { 
-       border: 1px solid rgba(70, 163, 255, .8);
+        border: 1px solid rgba(70, 163, 255, .8);
     }
  }
-
- /* @keyframes pulse-border-red {
-    from { 
-         border: 1px solid transparent;
-    }
-    to { 
-       border: 1px solid rgba(255, 76, 70, 0.8);
-    }
- } */
 
 /*#endregion*/

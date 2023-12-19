@@ -24,6 +24,18 @@ page = {
       this.populateSubjectList()
    },
 
+   async refreshSubjectPane(reload = false) {
+      document.getElementById('subject-pane').remove()
+      let page = document.getElementById('page')
+      page.appendChild(this.subjectPane)
+      if (reload) {
+         await this.loadSubjects()
+         this.populateSubjectList()
+      } else {
+         this.populateSubjectList()
+      }
+   },
+
    get subjectPane() {
       let ele = document.createElement('div')
       ele.id = 'subject-pane'
@@ -31,6 +43,10 @@ page = {
       ele.appendChild(this.getPaneHeader('S U B J E C T'))
       ele.appendChild(this.subjectPaneControls)
       ele.appendChild(this.subjectList)
+      if (state.selectedSubjectId == "0") {
+         state.selectedTopicId = 0
+         state.topics = [] 
+      }
       return ele
    },
 
@@ -79,10 +95,13 @@ page = {
    async createNewSubject() {
       let val = document.getElementById('new-subject').value.trim()
       if (val == '') return
+      state.clearTOpi
       let response = await api.POST('ignyos/subject', { title: val })
       let data = app.processApiResponse(response)
       state.addNewAccountSubject(data)
-      app.route()
+      await this.refreshSubjectPane(true)
+      await this.refreshTopicPane()
+      await this.refreshQuestionPane()
    },
 
    get subjectList() {
@@ -106,7 +125,7 @@ page = {
       ele.id = `sub-${subject.id}`
 
       let focus = document.createElement('span')
-      if (subject.focusTopicIds > 0) focus.innerText = '*'
+      if (subject.focusTopicIds.length > 0) focus.innerText = '*'
       ele.appendChild(focus)
 
       let txt = document.createElement('div')
@@ -121,10 +140,9 @@ page = {
          ele.classList.add('item')
          ele.addEventListener('click', async () => {
             state.selectedSubjectId = subject.id
-            state.selectedTopicId = 0
-            state.selectedQuestionId = 0
-            // this.populateSubjectList()
-            await app.route()
+            await this.refreshSubjectPane()
+            await this.refreshTopicPane(true)
+            await this.refreshQuestionPane()
          })
       }
       return ele
@@ -156,8 +174,10 @@ page = {
    async deleteSubject(subject) {
       let response = await api.DELETE('ignyos/subject', [["id",subject.id]])
       let data = app.processApiResponse(response)
-      if (data) state.deleteAccountSubject(subject)
-      await app.route()
+      if (data) state.deleteAccountSubject(subject.id)
+      await this.refreshSubjectPane()
+      await this.refreshTopicPane()
+      await this.refreshQuestionPane()
    },
 
    subjectListItemEditing(subject) {
@@ -205,7 +225,9 @@ page = {
       let data = app.processApiResponse(response)
       if (data === true) {
          state.updateAccountSubject(subject)
-         await app.route()
+         await this.refreshSubjectPane()
+         await this.refreshTopicPane()
+         await this.refreshQuestionPane()
       }
    },
 
@@ -215,11 +237,26 @@ page = {
    
    async loadTopics()
    {
-      if (state.selectedSubjectId == "0") return
-      let response = await api.GET("ignyos/Topic/List",[['subjectId',state.selectedSubjectId]])
-      let data = app.processApiResponse(response)
-      state.topics = data
-      this.populateTopicList()
+      if (state.selectedSubjectId == "0") {
+         state.selectedTopicId = 0
+         state.topics = []
+      } else {
+         let response = await api.GET("ignyos/Topic/List",[['subjectId',state.selectedSubjectId]])
+         let data = app.processApiResponse(response)
+         state.topics = data
+         this.populateTopicList()
+      }
+   },
+
+   async refreshTopicPane(reload = false) {
+      document.getElementById('topic-pane').remove()
+      let page = document.getElementById('page')
+      page.appendChild(this.topicPane)
+      if (reload) {
+         await this.loadTopics()
+      } else {
+         this.populateTopicList()
+      }
    },
 
    get topicPane() {
@@ -258,7 +295,7 @@ page = {
       input.classList.add('new-topic')
       input.addEventListener('keyup',async (event) => {
          if (event.key == 'Enter') {
-            await this.createNewTopic()
+            await this.createTopic()
          } else if (event.key == 'Escape') {
             document.getElementById('new-topic').value = ''
          }
@@ -271,18 +308,19 @@ page = {
       btn.classList.add('btn')
       btn.classList.add('plus')
       btn.addEventListener('click', async () => {
-         await this.createNewTopic()
+         await this.createTopic()
       })
       return btn
    },
 
-   async createNewTopic() {
+   async createTopic() {
       let val = document.getElementById('new-topic').value.trim()
       if (val == '') return
       let response = await api.POST('ignyos/topic', { subjectId: state.selectedSubjectId, title: val })
       let data = app.processApiResponse(response)
       state.addNewTopic(data)
-      app.route()
+      this.refreshTopicPane()
+      this.refreshQuestionPane()
    },
 
    get topicList() {
@@ -319,8 +357,8 @@ page = {
          ele.classList.add('item')
          ele.addEventListener('click', async () => {
             state.selectedTopicId = topic.id
-            state.selectedQuestionId = 0
-            await app.route()
+            this.refreshTopicPane()
+            this.refreshQuestionPane(true)
          })
       }
       return ele
@@ -330,7 +368,6 @@ page = {
       let ele = document.createElement('div')
       ele.classList.add('focus-btn')
       if (state.selectedSubject.focusTopicIds.includes(topic.id)) {
-         // ele.classList.add('selected')
          ele.innerText = '*'
       }
       ele.addEventListener('click', async (event) => {
@@ -341,10 +378,9 @@ page = {
             subjectId: state.selectedSubjectId,
             focusTopicIds: JSON.stringify(state.selectedSubject.focusTopicIds)
          }
-         let response = await api.PUT('ignyos/subject/focus',body)
-         let data = app.processApiResponse(response)
-         state.updateAccountSubject(data)
-         await app.route()
+         await api.PUT('ignyos/subject/focus',body)
+         await this.refreshSubjectPane()
+         await this.refreshTopicPane()
       })
       return ele
    },
@@ -373,10 +409,21 @@ page = {
    },
 
    async deleteTopic(topic) {
-      let response = await api.DELETE('ignyos/Topic', [["topicId",topic.id],["subjectId",state.selectedSubjectId]])
+      let response = await api.DELETE('ignyos/Topic', [["id",topic.id]])
       let data = app.processApiResponse(response)
-      if (data) state.deleteTopic(topic)
-      await app.route()
+      if (data) {
+         if (state.deleteTopic(topic)) {
+            let body = {
+               accountId: null,
+               subjectId: state.selectedSubjectId,
+               focusTopicIds: JSON.stringify(state.selectedSubject.focusTopicIds)
+            }
+            await api.PUT('ignyos/subject/focus',body)
+            this.refreshSubjectPane()
+         }
+      }
+      this.refreshTopicPane()
+      this.refreshQuestionPane()
    },
 
    topictListItemEditing(topic) {
@@ -400,7 +447,7 @@ page = {
          if (event.key == 'Enter') {
             await this.editTopic(topic)
          } else if (event.key == 'Escape') {
-            await app.route()
+            this.refreshTopicPane()
          }
       })
       return input
@@ -419,11 +466,12 @@ page = {
    async editTopic(topic) {
       let val = document.getElementById('edit-topic').value.trim()
       if (val == '') return
+      topic.subjectId = state.selectedSubjectId
       topic.title = val
       let response = await api.PUT('ignyos/topic', topic)
       let data = app.processApiResponse(response)
       state.updateTopic(data)
-      await app.route()
+      this.refreshTopicPane(true)
    },
 
    //#endregion
@@ -432,11 +480,26 @@ page = {
    
    async loadQuestions()
    {
-      if (state.selectedTopicId == "0") return
-      let response = await api.GET("ignyos/Question/List",[['topicId',state.selectedTopicId]])
-      let data = app.processApiResponse(response)
-      state.questions = data
-      this.populateQuestionList()
+      if (state.selectedTopicId == "0") {
+         state.selectedQuestionId = 0
+         state.questions = []
+      } else {
+         let response = await api.GET("ignyos/Question/List",[['topicId',state.selectedTopicId]])
+         let data = app.processApiResponse(response)
+         state.questions = data
+         this.populateQuestionList()
+      }
+   },
+
+   async refreshQuestionPane(reload = false) {
+      document.getElementById('question-pane').remove()
+      let page = document.getElementById('page')
+      page.appendChild(this.questionPane)
+      if (reload) {
+         await this.loadQuestions()
+      } else {
+         this.populateQuestionList()
+      }
    },
 
    get questionPane() {
@@ -496,6 +559,7 @@ page = {
          if (val == '') return
          state.selectedQuestionId = 0
          state.selectedQuestionId.shortPhrase = val
+         document.getElementById('new-question').value = ''
          await this.showQuestionModal()
       })
       return btn
@@ -529,7 +593,7 @@ page = {
          ele.classList.add('item')
          ele.addEventListener('click', async () => {
             state.selectedQuestionId = question.id
-            await app.route()
+            this.refreshQuestionPane()
          })
       }
       return ele
@@ -559,8 +623,8 @@ page = {
    async deleteQuestion(question) {
       let response = await api.DELETE('ignyos/Question', [["id",question.id]])
       let data = app.processApiResponse(response)
-      if (data) state.deleteTopic(question)
-      await app.route()
+      if (data) state.deleteQuestion(question)
+      this.refreshQuestionPane(true)
    },
 
    //#endregion
@@ -584,6 +648,7 @@ page = {
          let data = app.processApiResponse(response)
          state.question = data
       }
+      document.getElementById('new-question').value = ''
    },
 
    get questionModal() {
@@ -622,7 +687,7 @@ page = {
       save.classList.add('btn')
       save.classList.add('save')
       save.addEventListener('click', async () => {
-         await this.saveQuestion()        
+         await this.saveQuestion()
       })
 
       let cancel = document.createElement('div')
@@ -656,7 +721,7 @@ page = {
             let data = app.processApiResponse(response)
             state.updateQuestion(data)
          }
-         this.populateQuestionList()
+         this.refreshQuestionPane(true)
          document.getElementById('site-header').classList.remove('blur')
          document.getElementById('nav').classList.remove('blur')
          app.hideModal()
@@ -672,15 +737,15 @@ page = {
          let result = true
          if (shortPhrase == '') {
             result = false
-            app.showErrors(['A short phrasing of the question is required.'])
+            messageCenter.addError('A short phrasing of the question is required.')
          }
          if (phrase == '') {
             result = false
-            app.showErrors(['The full phrasing of the question is required.'])
+            messageCenter.addError('The full phrasing of the question is required.')
          }
          if (answer == '') {
             result = false
-            app.showErrors(['The answer to the question is required.'])
+            messageCenter.addError('The answer to the question is required.')
          }
          return result
       }
@@ -693,28 +758,6 @@ page = {
          'topicId': state.selectedTopicId,
          'isValid': isValid
       }
-   },
-
-   async createQuestion() {
-      if (this.questionForm.isValid()) {
-            let response = await api.POST('ignyos/question', this.questionForm)
-            let data = app.processApiResponse(response)
-            state.addQuestion(data)
-            app.route()
-      }
-   },
-
-   async updateQuestion() {
-      if (this.questionForm.isValid()) {
-            let response = await api.PUT('ignyos/question', this.questionForm)
-            let data = app.processApiResponse(response)
-            state.updateQuestion(data)
-            app.route()
-      }
-   },
-
-   updateQuestion() {
-
    },
 
    //#endregion

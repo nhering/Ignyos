@@ -1,31 +1,33 @@
 #page {
    display: grid;
    grid-template-columns: 1fr 1fr 1fr;
-   grid-template-areas: '. question-pane .';
+   grid-template-areas: '. quiz-pane .';
 }
 
-#question-pane {
-   grid-area: question-pane;
+#quiz-pane {
+   grid-area: quiz-pane;
    grid-template-columns: 1fr;
    overflow-y: auto;
    padding: 6px 0;
 }
 
-#question-pane.without-answer {
+#quiz-pane.results {
    display: grid;
-   grid-template-rows: 1fr;
-   grid-template-areas: 'question';
+   grid-template-rows: auto 1fr;
 }
 
-.without-answer > #answer {
-   display: none;
+#quiz-pane.without-answer {
+   display: grid;
+   grid-template-rows: 1fr 1fr 48px;
+   grid-template-areas: 'question' 'answer' 'controls';
+   row-gap: 12px;
 }
 
 .without-answer > #controls {
    display: none;
 }
 
-#question-pane.with-answer {
+#quiz-pane.with-answer {
    display: grid;
    grid-template-rows: 1fr 1fr 48px;
    grid-template-areas: 'question' 'answer' 'controls';
@@ -86,4 +88,57 @@
 #controls > .btn:hover {
    animation: pulse-border-blue .8s infinite;
    animation-direction: alternate;
+}
+
+#quiz-pane.results {
+   display: grid;
+   grid-template-rows: auto 1fr;
+   row-gap: 12px;
+   padding: 12px;
+   background-color: rgba(255, 255, 255, .035);
+   border-radius: 12px;
+   font-size: 19px;
+   margin: 12px;
+}
+
+#quiz-summary {
+   display: grid;
+   grid-template-columns: 1fr auto 1fr;
+   grid-template-areas: '. info close';
+}
+
+#quiz-summary > .info {
+   grid-area: info;
+   color: #d1daddbf;
+}
+
+#quiz-summary > .close {
+   grid-area: close;
+   color: rgb(92 173 255);
+   margin-left: auto;
+   border: solid 1px rgb(92 173 255);
+   border-radius: 50%;
+   height: 24px;
+   width: 24px;
+   float: inline-end;
+   text-align: center;
+   line-height: 1.35em;
+   cursor: pointer;
+}
+
+#question-list > .item {
+   background-color: rgba(255,255,255,.05);
+   padding-left: 6px;
+   height: 30px;
+   line-height: 1.7em;
+   margin-bottom: 6px;
+   border-left: solid 2px transparent;
+}
+
+#question-list > .item.correct {
+   border-left: solid 2px green;
+}
+
+#question-list > .item.incorrect {
+   border-left: solid 2px #9f2525;
 }
